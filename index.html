@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Absensi ICM Congress Management</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#075985',
+                            900: '#0c4a6e',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+        /* Custom Table Styles mimicking Google Sheets */
+        .sheet-table th, .sheet-table td {
+            border: 1px solid #e2e8f0;
+            padding: 8px 12px;
+            font-size: 13px;
+        }
+        .sheet-table th {
+            background-color: #f8fafc;
+            font-weight: 600;
+            color: #475569;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800 flex flex-col">
+
+    <!-- Modal Notification System (Replaces Alert) -->
+    <div id="customModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 text-center transform transition-all">
+            <div id="modalIcon" class="w-16 h-16 mx-auto mb-4 flex items-center justify-center rounded-full bg-blue-100 text-blue-600 text-2xl">
+                <i class="fa-solid fa-circle-info"></i>
+            </div>
+            <h3 id="modalTitle" class="text-xl font-bold text-slate-800 mb-2">Informasi</h3>
+            <p id="modalMessage" class="text-sm text-slate-600 mb-6">Pesan notifikasi...</p>
+            <button onclick="closeModal()" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-lg transition-colors">
+                Tutup
+            </button>
+        </div>
+    </div>
+
+    <!-- Header / Navbar -->
+    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-brand-600 text-white font-bold p-2 rounded-lg flex items-center justify-center">
+                    <i class="fa-solid fa-building-user text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">ICM Congress Management</h1>
+                    <p class="text-xs text-slate-400">Jl. Westhoff No.35, Pasir Kaliki, Bandung</p>
+                </div>
+            </div>
+            
+            <div id="userHeaderInfo" class="hidden flex items-center space-x-4">
+                <div class="text-right">
+                    <p id="headerUserName" class="font-medium text-sm text-white">Nama User</p>
+                    <span id="headerUserRole" class="inline-block bg-brand-700 text-white text-[10px] px-2 py-0.5 rounded font-semibold tracking-wide">KARYAWAN</span>
+                </div>
+                <button onclick="logout()" class="bg-slate-800 hover:bg-red-600 text-slate-300 hover:text-white p-2 rounded-lg transition-colors" title="Keluar">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 space-y-6">
+
+        <!-- ================= LOGIN SECTION ================= -->
+        <section id="loginSection" class="max-w-md mx-auto my-12 bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+            <div class="p-8">
+                <div class="text-center mb-6">
+                    <div class="inline-flex p-3 bg-brand-50 text-brand-600 rounded-full mb-3">
+                        <i class="fa-solid fa-lock text-2xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-slate-800">Masuk Akun Absensi</h2>
+                    <p class="text-sm text-slate-500 mt-1">Gunakan Akun Google & Password Terdaftar</p>
+                </div>
+
+                <!-- Simulasi Google Auth Form -->
+                <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Email Google Terdaftar</label>
+                        <div class="relative">
+                            <i class="fa-brands fa-google absolute left-3 top-3 text-slate-400"></i>
+                            <input type="email" id="loginEmail" placeholder="nama@gmail.com" required 
+                                class="w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Kata Sandi</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-key absolute left-3 top-3 text-slate-400"></i>
+                            <input type="password" id="loginPassword" placeholder="••••••••" required 
+                                class="w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                        </div>
+                        <p class="text-[11px] text-slate-400 mt-1">* Password default karyawan: <span class="font-mono text-brand-600 font-bold">ICM35!</span></p>
+                    </div>
+
+                    <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold py-3 rounded-lg shadow-md transition-all flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-right-to-bracket"></i>
+                        <span>Masuk ke Dashboard</span>
+                    </button>
+                </form>
+
+                <div class="mt-6 pt-4 border-t border-slate-100 text-center">
+                    <p class="text-xs text-slate-500">Demologin Admin: <span class="font-semibold">admin@icm.com</span> / <span class="font-semibold text-brand-600">adminICM35</span></p>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ================= DASHBOARD USER & ADMIN ================= -->
+        <div id="dashboardSection" class="hidden space-y-6">
+
+            <!-- BANNER CHECK-IN GPS LOCATION STATUS -->
+            <div id="locationBanner" class="p-4 rounded-xl border flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-amber-50 border-amber-200">
+                <div class="flex items-center space-x-3">
+                    <div id="locationIcon" class="p-3 rounded-full bg-amber-500 text-white">
+                        <i class="fa-solid fa-location-crosshairs text-lg"></i>
+                    </div>
+                    <div>
+                        <h4 id="locationTitle" class="font-bold text-slate-800">Pengecekan Lokasi GPS...</h4>
+                        <p id="locationSub" class="text-xs text-slate-600">Sistem sedang mendeteksi jarak Anda dengan kantor ICM (Jl. Westhoff No.35 Bandung)</p>
+                    </div>
+                </div>
+                <button onclick="checkGeolocation()" class="px-4 py-2 bg-white border border-slate-300 text-xs font-semibold rounded-lg hover:bg-slate-50 shadow-sm transition-colors whitespace-nowrap">
+                    <i class="fa-solid fa-rotate-right mr-1"></i> Refresh Lokasi
+                </button>
+            </div>
+
+            <!-- ADMIN ONLY PANEL: REGISTRASI KARYAWAN & EDIT GAJI -->
+            <div id="adminPanel" class="hidden bg-slate-900 text-white rounded-2xl p-6 shadow-xl space-y-6">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="p-2.5 bg-amber-500 text-slate-900 rounded-lg">
+                            <i class="fa-solid fa-user-gear text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold">Panel Administrasi (Khusus Admin)</h3>
+                            <p class="text-xs text-slate-400">Daftarkan akun karyawan baru & atur persentase/besaran gaji harian</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Form Registrasi Karyawan -->
+                    <form onsubmit="handleAddEmployee(event)" class="bg-slate-800 p-4 rounded-xl border border-slate-700 space-y-3">
+                        <h4 class="font-semibold text-sm text-amber-400 flex items-center">
+                            <i class="fa-solid fa-user-plus mr-2"></i> Tambah Karyawan Baru
+                        </h4>
+                        <div>
+                            <label class="block text-xs text-slate-300 mb-1">Nama Lengkap Karyawan</label>
+                            <input type="text" id="newEmpName" required placeholder="Contoh: Budi Santoso"
+                                class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-300 mb-1">Email Google Karyawan</label>
+                            <input type="email" id="newEmpEmail" required placeholder="budi@gmail.com"
+                                class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                        </div>
+                        <p class="text-[11px] text-slate-400">* Password otomatis diset ke <span class="text-amber-400 font-bold">ICM35!</span></p>
+                        <button type="submit" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold py-2 rounded transition-colors text-sm">
+                            <i class="fa-solid fa-plus-circle mr-1"></i> Daftarkan & Tambah ke Sheets
+                        </button>
+                    </form>
+
+                    <!-- Form Update Gaji Standar -->
+                    <form onsubmit="handleUpdateSalary(event)" class="bg-slate-800 p-4 rounded-xl border border-slate-700 space-y-3 flex flex-col justify-between">
+                        <div>
+                            <h4 class="font-semibold text-sm text-emerald-400 mb-3 flex items-center">
+                                <i class="fa-solid fa-file-invoice-dollar mr-2"></i> Pengaturan Gaji Harian Standar
+                            </h4>
+                            <label class="block text-xs text-slate-300 mb-1">Nominal Gaji Harian (100% Base Rate)</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-2 text-slate-400 text-sm">Rp</span>
+                                <input type="number" id="baseSalaryInput" required min="10000" step="5000"
+                                    class="w-full bg-slate-900 border border-slate-700 rounded pl-10 pr-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                            </div>
+                            <p class="text-[11px] text-slate-400 mt-2">
+                                Potongan keterlambatan otomatis: <span class="text-red-400 font-bold">5%</span> jika absen masuk setelah pukul <span class="text-amber-400 font-bold">09:00 WIB</span>.
+                            </p>
+                        </div>
+                        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 rounded transition-colors text-sm">
+                            <i class="fa-solid fa-floppy-disk mr-1"></i> Simpan Nominal Gaji
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- DASHBOARD USER METRICS & SALARY INFO -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Card Gaji Harian -->
+                <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Persentase Gaji Hari Ini</span>
+                        <div class="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
+                            <i class="fa-solid fa-money-bill-wave"></i>
+                        </div>
+                    </div>
+                    <div class="flex items-baseline space-x-2">
+                        <h3 id="userTodayRate" class="text-3xl font-extrabold text-slate-800">100%</h3>
+                        <span id="userTodaySalary" class="text-xs text-slate-500 font-semibold">(Rp 0)</span>
+                    </div>
+                    <p id="salaryDeductionStatus" class="text-[11px] text-emerald-600 mt-2 flex items-center">
+                        <i class="fa-solid fa-circle-check mr-1"></i> Tepat Waktu (Tidak Ada Potongan)
+                    </p>
+                </div>
+
+                <!-- Card Jatah Cuti Mingguan -->
+                <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Jatah Cuti Mingguan</span>
+                        <div class="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                            <i class="fa-solid fa-calendar-minus"></i>
+                        </div>
+                    </div>
+                    <div class="flex items-baseline space-x-2">
+                        <h3 id="leaveQuotaText" class="text-3xl font-extrabold text-slate-800">2</h3>
+                        <span class="text-sm text-slate-500">Hari / Minggu</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-2">Dapat dipergunakan untuk izin sakit & acara pribadi</p>
+                </div>
+
+                <!-- Card Akumulasi Gaji Bulanan -->
+                <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Estimasi Terkumpul Bulan Ini</span>
+                        <div class="p-2 bg-purple-50 text-purple-600 rounded-lg">
+                            <i class="fa-solid fa-vault"></i>
+                        </div>
+                    </div>
+                    <h3 id="monthlySalaryAccumulated" class="text-3xl font-extrabold text-brand-600">Rp 0</h3>
+                    <p class="text-[11px] text-slate-400 mt-2">Terkalkulasi otomatis dari absensi masuk harian</p>
+                </div>
+            </div>
+
+            <!-- ABSENSI ACTION BUTTONS SECTION -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-4 gap-2">
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800">Tombol Absensi Siap</h3>
+                        <p class="text-xs text-slate-500">Tekan "SIAP" terlebih dahulu untuk merekam jam & menit aktivitas Anda</p>
+                    </div>
+                    <!-- Live Clock -->
+                    <div class="bg-slate-900 text-amber-400 px-4 py-2 rounded-xl font-mono text-sm font-bold shadow-inner">
+                        <i class="fa-solid fa-clock mr-2"></i><span id="liveClock">00:00:00 WIB</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- 1. Absen Masuk -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col justify-between space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-slate-700 text-sm">1. Absen Masuk</span>
+                            <span id="statusMasuk" class="text-[10px] bg-slate-200 text-slate-600 font-semibold px-2 py-0.5 rounded">Belum</span>
+                        </div>
+                        <p id="timeMasuk" class="text-xs font-mono text-slate-500 text-center py-1">--:-- WIB</p>
+                        <button id="btnMasuk" onclick="triggerAbsen('masuk')" disabled 
+                            class="w-full bg-slate-300 text-slate-500 font-semibold py-2.5 rounded-lg shadow-sm transition-all text-xs flex items-center justify-center space-x-1">
+                            <i class="fa-solid fa-hand-pointer mr-1"></i> SIAP ABSEN MASUK
+                        </button>
+                    </div>
+
+                    <!-- 2. Istirahat Mulai -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col justify-between space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-slate-700 text-sm">2. Istirahat Mulai</span>
+                            <span id="statusIstirahatMulai" class="text-[10px] bg-slate-200 text-slate-600 font-semibold px-2 py-0.5 rounded">Belum</span>
+                        </div>
+                        <p id="timeIstirahatMulai" class="text-xs font-mono text-slate-500 text-center py-1">--:-- WIB</p>
+                        <button id="btnIstirahatMulai" onclick="triggerAbsen('istirahat_mulai')" disabled 
+                            class="w-full bg-slate-300 text-slate-500 font-semibold py-2.5 rounded-lg shadow-sm transition-all text-xs flex items-center justify-center space-x-1">
+                            <i class="fa-solid fa-utensils mr-1"></i> SIAP ISTIRAHAT
+                        </button>
+                    </div>
+
+                    <!-- 3. Istirahat Selesai -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col justify-between space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-slate-700 text-sm">3. Istirahat Selesai</span>
+                            <span id="statusIstirahatSelesai" class="text-[10px] bg-slate-200 text-slate-600 font-semibold px-2 py-0.5 rounded">Belum</span>
+                        </div>
+                        <p id="timeIstirahatSelesai" class="text-xs font-mono text-slate-500 text-center py-1">--:-- WIB</p>
+                        <button id="btnIstirahatSelesai" onclick="triggerAbsen('istirahat_selesai')" disabled 
+                            class="w-full bg-slate-300 text-slate-500 font-semibold py-2.5 rounded-lg shadow-sm transition-all text-xs flex items-center justify-center space-x-1">
+                            <i class="fa-solid fa-laptop-code mr-1"></i> SIAP KEMBALI KERJA
+                        </button>
+                    </div>
+
+                    <!-- 4. Absen Pulang -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col justify-between space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-slate-700 text-sm">4. Absen Pulang</span>
+                            <span id="statusPulang" class="text-[10px] bg-slate-200 text-slate-600 font-semibold px-2 py-0.5 rounded">Belum</span>
+                        </div>
+                        <p id="timePulang" class="text-xs font-mono text-slate-500 text-center py-1">--:-- WIB</p>
+                        <button id="btnPulang" onclick="triggerAbsen('pulang')" disabled 
+                            class="w-full bg-slate-300 text-slate-500 font-semibold py-2.5 rounded-lg shadow-sm transition-all text-xs flex items-center justify-center space-x-1">
+                            <i class="fa-solid fa-house-user mr-1"></i> SIAP PULANG
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DASHBOARD PENGAJUAN IZIN / SAKIT / EVENT / TELAT -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
+                <div class="border-b pb-3">
+                    <h3 class="text-lg font-bold text-slate-800">Form Pengajuan Izin, Sakit, Event & Telat</h3>
+                    <p class="text-xs text-slate-500">Pilih tanggal dan jenis pengajuan untuk menghitung total hari kerja yang diajukan</p>
+                </div>
+
+                <form onsubmit="handleLeaveSubmit(event)" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Jenis Pengajuan</label>
+                        <select id="leaveType" required class="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500">
+                            <option value="Izin">Izin (Merah)</option>
+                            <option value="Sakit">Sakit (Kuning)</option>
+                            <option value="Event">Event (Merah)</option>
+                            <option value="Telat Masuk">Telat Masuk (Merah)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Tanggal Mulai</label>
+                        <input type="date" id="leaveStartDate" required onchange="calculateLeaveDays()" 
+                            class="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Tanggal Akhir</label>
+                        <input type="date" id="leaveEndDate" required onchange="calculateLeaveDays()" 
+                            class="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500">
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Deskripsi / Alasan Keterangan</label>
+                        <textarea id="leaveDesc" required rows="2" placeholder="Masukkan alasan pengajuan secara rinci..." 
+                            class="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500"></textarea>
+                    </div>
+
+                    <div class="flex flex-col justify-between bg-slate-50 p-3 rounded-xl border border-slate-200">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-slate-500">Total Hari Diajukan:</span>
+                            <span id="calculatedDaysText" class="font-bold text-slate-800 text-sm">0 Hari</span>
+                        </div>
+                        <button type="submit" class="w-full mt-2 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2 rounded-lg text-xs shadow transition-colors">
+                            <i class="fa-solid fa-paper-plane mr-1"></i> Kirim Pengajuan
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- GOOGLE SHEETS LIVE TABLE VIEW -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-3 gap-2">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-file-excel text-emerald-600 text-2xl"></i>
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-800">Recap Table Sheets Absensi</h3>
+                            <p class="text-xs text-slate-500">Tabel tersinkronisasi otomatis dengan status pewarnaan (Abu-abu: Masuk Tepat Waktu, Kuning: Sakit, Merah: Izin/Event/Telat)</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2 text-xs">
+                        <span class="flex items-center space-x-1 bg-gray-200 text-gray-800 px-2.5 py-1 rounded border border-gray-300 font-medium">
+                            <span class="w-2.5 h-2.5 rounded-full bg-gray-500"></span>
+                            <span>Tepat Waktu</span>
+                        </span>
+                        <span class="flex items-center space-x-1 bg-amber-100 text-amber-900 px-2.5 py-1 rounded border border-amber-300 font-medium">
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                            <span>Sakit</span>
+                        </span>
+                        <span class="flex items-center space-x-1 bg-red-100 text-red-900 px-2.5 py-1 rounded border border-red-300 font-medium">
+                            <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                            <span>Izin / Telat / Event</span>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Scrollable Table -->
+                <div class="overflow-x-auto rounded-lg border border-slate-200">
+                    <table class="w-full text-left border-collapse sheet-table">
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Nama Karyawan</th>
+                                <th>Email Google</th>
+                                <th>Tanggal</th>
+                                <th>Masuk</th>
+                                <th>Istirahat Mulai</th>
+                                <th>Istirahat Selesai</th>
+                                <th>Pulang</th>
+                                <th>Status / Ket</th>
+                                <th>Gaji Hari Ini (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sheetsTableBody">
+                            <!-- Rows loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500">
+            &copy; 2026 PT ICM Congress Management Bandung. Jl. Westhoff No.35. All rights reserved.
+        </div>
+    </footer>
+
+    <!-- LOGIC APPLICATION JS -->
+    <script>
+        // CONFIGURATION & CONSTANTS
+        // Geofence target: Jl. Westhoff No.35, Bandung (Approx coords: -6.8998, 107.5975)
+        const OFFICE_COORDS = { lat: -6.8998, lng: 107.5975 };
+        const MAX_RADIUS_KM = 0.5; // Max 500 meters radius from Westhoff No. 35
+
+        // INITIAL DATABASE IN-MEMORY
+        let appState = {
+            baseSalary: 200000, // Gaji standar harian Rp 200.000
+            currentUser: null,
+            userLocationValid: false,
+            employees: [
+                { id: 1, name: "Admin Utama", email: "admin@icm.com", password: "adminICM35", role: "admin", leaveQuota: 5 },
+                { id: 2, name: "Asep Sunandar", email: "asep.icm@gmail.com", password: "ICM35!", role: "user", leaveQuota: 2 },
+                { id: 3, name: "Siti Rahmawati", email: "siti.icm@gmail.com", password: "ICM35!", role: "user", leaveQuota: 2 }
+            ],
+            // Attendance entries mimicking sheets rows
+            attendanceRecords: [
+                {
+                    id: 101,
+                    empId: 2,
+                    empName: "Asep Sunandar",
+                    empEmail: "asep.icm@gmail.com",
+                    date: "2026-11-01",
+                    masuk: "08:45 WIB",
+                    istirahatMulai: "12:00 WIB",
+                    istirahatSelesai: "13:00 WIB",
+                    pulang: "17:00 WIB",
+                    status: "Hadir (Tepat Waktu)",
+                    salaryRate: 100,
+                    colorClass: "bg-gray-200 text-gray-800"
+                },
+                {
+                    id: 102,
+                    empId: 3,
+                    empName: "Siti Rahmawati",
+                    empEmail: "siti.icm@gmail.com",
+                    date: "2026-11-01",
+                    masuk: "09:15 WIB",
+                    istirahatMulai: "12:00 WIB",
+                    istirahatSelesai: "13:00 WIB",
+                    pulang: "17:00 WIB",
+                    status: "Telat Masuk (Potongan 5%)",
+                    salaryRate: 95,
+                    colorClass: "bg-red-200 text-red-900"
+                }
+            ]
+        };
+
+        // Live Clock
+        setInterval(() => {
+            const now = new Date();
+            const clockEl = document.getElementById('liveClock');
+            if(clockEl) {
+                clockEl.textContent = now.toLocaleTimeString('id-ID') + ' WIB';
+            }
+        }, 1000);
+
+        // Geolocation Check Handler
+        function checkGeolocation() {
+            const locBanner = document.getElementById('locationBanner');
+            const locTitle = document.getElementById('locationTitle');
+            const locSub = document.getElementById('locationSub');
+            const locIcon = document.getElementById('locationIcon');
+
+            locTitle.textContent = "Mendeteksi Lokasi Anda...";
+            locSub.textContent = "Mengakses sensor GPS HP/Komputer...";
+
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const userLat = position.coords.latitude;
+                        const userLng = position.coords.longitude;
+                        
+                        const distanceKm = getHaversineDistance(userLat, userLng, OFFICE_COORDS.lat, OFFICE_COORDS.lng);
+                        
+                        if (distanceKm <= MAX_RADIUS_KM) {
+                            appState.userLocationValid = true;
+                            locBanner.className = "p-4 rounded-xl border flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-emerald-50 border-emerald-200";
+                            locIcon.className = "p-3 rounded-full bg-emerald-500 text-white";
+                            locIcon.innerHTML = `<i class="fa-solid fa-location-dot text-lg"></i>`;
+                            locTitle.textContent = "Dalam Jangkauan Kantor ICM";
+                            locSub.textContent = `Posisi Anda terverifikasi di area Jl. Westhoff No.35 Bandung (${(distanceKm * 1000).toFixed(0)}m dari lokasi)`;
+                        } else {
+                            appState.userLocationValid = false;
+                            locBanner.className = "p-4 rounded-xl border flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-red-50 border-red-200";
+                            locIcon.className = "p-3 rounded-full bg-red-500 text-white";
+                            locIcon.innerHTML = `<i class="fa-solid fa-location-pin-lock text-lg"></i>`;
+                            locTitle.textContent = "Di Luar Jangkauan Kantor ICM!";
+                            locSub.textContent = `Absen terkunci. Anda berada ${(distanceKm).toFixed(2)} km dari Jl. Westhoff No.35 Bandung. (Maksimal ${MAX_RADIUS_KM * 1000}m)`;
+                        }
+                        updateAbsenButtonsState();
+                    },
+                    (error) => {
+                        // Demo mode fallback: Jika user menolak izin GPS / error browser, izinkan simulasi terhubung
+                        appState.userLocationValid = true; 
+                        locBanner.className = "p-4 rounded-xl border flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-emerald-50 border-emerald-200";
+                        locIcon.className = "p-3 rounded-full bg-emerald-500 text-white";
+                        locIcon.innerHTML = `<i class="fa-solid fa-location-dot text-lg"></i>`;
+                        locTitle.textContent = "Lokasi Terverifikasi (Mode Simulasi GPS)";
+                        locSub.textContent = "GPS browser tidak aktif, lokasi otomatis diset terhubung ke Jl. Westhoff No. 35 Bandung.";
+                        updateAbsenButtonsState();
+                    },
+                    { enableHighAccuracy: true, timeout: 5000 }
+                );
+            } else {
+                appState.userLocationValid = true;
+                updateAbsenButtonsState();
+            }
+        }
+
+        // Calculate Distance using Haversine Formula
+        function getHaversineDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Radius of the Earth in km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = 
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c; 
+        }
+
+        // HANDLE LOGIN
+        function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+
+            const user = appState.employees.find(emp => emp.email.toLowerCase() === email.toLowerCase() && emp.password === password);
+
+            if (user) {
+                appState.currentUser = user;
+                document.getElementById('loginSection').classList.add('hidden');
+                document.getElementById('dashboardSection').classList.remove('hidden');
+                document.getElementById('userHeaderInfo').classList.remove('hidden');
+
+                document.getElementById('headerUserName').textContent = user.name;
+                document.getElementById('headerUserRole').textContent = user.role.toUpperCase();
+
+                // Toggle Admin Panel
+                if (user.role === 'admin') {
+                    document.getElementById('adminPanel').classList.remove('hidden');
+                } else {
+                    document.getElementById('adminPanel').classList.add('hidden');
+                }
+
+                document.getElementById('baseSalaryInput').value = appState.baseSalary;
+                document.getElementById('leaveQuotaText').textContent = user.leaveQuota;
+
+                checkGeolocation();
+                renderSheetsTable();
+                calculateUserDashboardMetrics();
+                
+                showModal('Berhasil Login', `Selamat datang, ${user.name}! Anda berhasil masuk ke sistem absensi.`, 'success');
+            } else {
+                showModal('Login Gagal', 'Email Google atau Kata Sandi salah. Password admin: adminICM35 | Password karyawan: ICM35!', 'error');
+            }
+        }
+
+        function logout() {
+            appState.currentUser = null;
+            document.getElementById('dashboardSection').classList.add('hidden');
+            document.getElementById('userHeaderInfo').classList.add('hidden');
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('loginForm').reset();
+        }
+
+        // UPDATE ABSEN BUTTONS ACTIVE/DISABLED STATE
+        function updateAbsenButtonsState() {
+            const isLocationValid = appState.userLocationValid;
+            const today = new Date().toISOString().split('T')[0];
+            const currentRecord = appState.attendanceRecords.find(r => r.empId === appState.currentUser?.id && r.date === today);
+
+            const btnMasuk = document.getElementById('btnMasuk');
+            const btnIstirahatMulai = document.getElementById('btnIstirahatMulai');
+            const btnIstirahatSelesai = document.getElementById('btnIstirahatSelesai');
+            const btnPulang = document.getElementById('btnPulang');
+
+            // Reset status styles
+            const enableStyle = "w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-lg shadow-md transition-all text-xs cursor-pointer";
+            const disableStyle = "w-full bg-slate-300 text-slate-500 font-semibold py-2.5 rounded-lg shadow-sm transition-all text-xs cursor-not-allowed";
+
+            if (!isLocationValid) {
+                btnMasuk.disabled = true; btnMasuk.className = disableStyle;
+                btnIstirahatMulai.disabled = true; btnIstirahatMulai.className = disableStyle;
+                btnIstirahatSelesai.disabled = true; btnIstirahatSelesai.className = disableStyle;
+                btnPulang.disabled = true; btnPulang.className = disableStyle;
+                return;
+            }
+
+            // Logic flow per tombol
+            btnMasuk.disabled = !!(currentRecord && currentRecord.masuk !== '--:--');
+            btnMasuk.className = btnMasuk.disabled ? disableStyle : enableStyle;
+
+            btnIstirahatMulai.disabled = !(currentRecord && currentRecord.masuk !== '--:--' && currentRecord.istirahatMulai === '--:--');
+            btnIstirahatMulai.className = btnIstirahatMulai.disabled ? disableStyle : enableStyle;
+
+            btnIstirahatSelesai.disabled = !(currentRecord && currentRecord.istirahatMulai !== '--:--' && currentRecord.istirahatSelesai === '--:--');
+            btnIstirahatSelesai.className = btnIstirahatSelesai.disabled ? disableStyle : enableStyle;
+
+            btnPulang.disabled = !(currentRecord && currentRecord.istirahatSelesai !== '--:--' && currentRecord.pulang === '--:--');
+            btnPulang.className = btnPulang.disabled ? disableStyle : enableStyle;
+
+            if (currentRecord) {
+                document.getElementById('timeMasuk').textContent = currentRecord.masuk;
+                document.getElementById('statusMasuk').textContent = currentRecord.masuk !== '--:--' ? 'Selesai' : 'Belum';
+                
+                document.getElementById('timeIstirahatMulai').textContent = currentRecord.istirahatMulai;
+                document.getElementById('statusIstirahatMulai').textContent = currentRecord.istirahatMulai !== '--:--' ? 'Selesai' : 'Belum';
+                
+                document.getElementById('timeIstirahatSelesai').textContent = currentRecord.istirahatSelesai;
+                document.getElementById('statusIstirahatSelesai').textContent = currentRecord.istirahatSelesai !== '--:--' ? 'Selesai' : 'Belum';
+
+                document.getElementById('timePulang').textContent = currentRecord.pulang;
+                document.getElementById('statusPulang').textContent = currentRecord.pulang !== '--:--' ? 'Selesai' : 'Belum';
+            }
+        }
+
+        // TRIGGER ABSEN (Siap Menekan)
+        function triggerAbsen(type) {
+            if (!appState.userLocationValid) {
+                showModal('Akses Ditolak', 'Anda berada di luar jangkauan lokasi kantor Jl. Westhoff No.35 Bandung!', 'error');
+                return;
+            }
+
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+            const today = now.toISOString().split('T')[0];
+
+            let record = appState.attendanceRecords.find(r => r.empId === appState.currentUser.id && r.date === today);
+
+            if (!record) {
+                record = {
+                    id: Date.now(),
+                    empId: appState.currentUser.id,
+                    empName: appState.currentUser.name,
+                    empEmail: appState.currentUser.email,
+                    date: today,
+                    masuk: '--:--',
+                    istirahatMulai: '--:--',
+                    istirahatSelesai: '--:--',
+                    pulang: '--:--',
+                    status: 'Belum Lengkap',
+                    salaryRate: 100,
+                    colorClass: 'bg-gray-200 text-gray-800'
+                };
+                appState.attendanceRecords.push(record);
+            }
+
+            if (type === 'masuk') {
+                record.masuk = timeString;
+                
+                // Evaluasi Keterlambatan (Jam 9 Pagi)
+                const currentHour = now.getHours();
+                const currentMinute = now.getMinutes();
+
+                if (currentHour > 9 || (currentHour === 9 && currentMinute > 0)) {
+                    record.salaryRate = 95; // Terpotong 5%
+                    record.status = 'Telat Masuk (> 09:00 WIB)';
+                    record.colorClass = 'bg-red-200 text-red-900'; // Warna Merah di Sheets
+                    showModal('Absen Masuk (Terlambat)', `Anda menekan tombol SIAP pada pukul ${timeString}. Karena melepasi jam 09:00 pagi, otomatis gaji harian terpotong 5%.`, 'warning');
+                } else {
+                    record.salaryRate = 100;
+                    record.status = 'Hadir (Tepat Waktu)';
+                    record.colorClass = 'bg-gray-200 text-gray-800'; // Warna Abu-abu di Sheets
+                    showModal('Absen Masuk Berhasil', `Berhasil merekam absen masuk tepat waktu pada pukul ${timeString}. Gaji utuh 100%.`, 'success');
+                }
+            } else if (type === 'istirahat_mulai') {
+                record.istirahatMulai = timeString;
+                showModal('Istirahat Mulai', `Waktu istirahat Anda terekam pada jam ${timeString}. Selamat beristirahat!`, 'info');
+            } else if (type === 'istirahat_selesai') {
+                record.istirahatSelesai = timeString;
+                showModal('Istirahat Selesai', `Waktu kembali bekerja terekam pada jam ${timeString}. Selamat melanjutkan aktivitas!`, 'info');
+            } else if (type === 'pulang') {
+                record.pulang = timeString;
+                showModal('Absen Pulang', `Terima kasih! Absen pulang Anda berhasil terekam pada pukul ${timeString}. Hati-hati di jalan!`, 'success');
+            }
+
+            updateAbsenButtonsState();
+            renderSheetsTable();
+            calculateUserDashboardMetrics();
+        }
+
+        // ADMIN: TAMBAH KARYAWAN BARU
+        function handleAddEmployee(e) {
+            e.preventDefault();
+            const name = document.getElementById('newEmpName').value.trim();
+            const email = document.getElementById('newEmpEmail').value.trim();
+
+            const existing = appState.employees.find(emp => emp.email.toLowerCase() === email.toLowerCase());
+            if (existing) {
+                showModal('Gagal', 'Email Google tersebut sudah terdaftar!', 'error');
+                return;
+            }
+
+            // Buat akun karyawan baru dengan format yang valid untuk autentikasi login
+            const newEmp = {
+                id: Date.now(),
+                name: name,
+                email: email,
+                password: "ICM35!", // Password default karyawan yang dapat digunakan untuk login
+                role: "user",
+                leaveQuota: 2
+            };
+
+            appState.employees.push(newEmp);
+
+            // Otomatis tambahkan baris default karyawan baru pada Sheets
+            appState.attendanceRecords.push({
+                id: Date.now() + 1,
+                empId: newEmp.id,
+                empName: newEmp.name,
+                empEmail: newEmp.email,
+                date: new Date().toISOString().split('T')[0],
+                masuk: '--:--',
+                istirahatMulai: '--:--',
+                istirahatSelesai: '--:--',
+                pulang: '--:--',
+                status: 'Karyawan Baru Terdaftar',
+                salaryRate: 100,
+                colorClass: 'bg-gray-100 text-gray-700'
+            });
+
+            document.getElementById('newEmpName').value = '';
+            document.getElementById('newEmpEmail').value = '';
+
+            renderSheetsTable();
+            showModal('Karyawan Berhasil Ditambahkan', `Akun Google ${email} telah berhasil mendaftar! Karyawan sekarang dapat langsung login dari halaman depan dengan password: ICM35!`, 'success');
+        }
+
+        // ADMIN: EDIT GAJI STANDAR
+        function handleUpdateSalary(e) {
+            e.preventDefault();
+            const val = parseFloat(document.getElementById('baseSalaryInput').value);
+            if (val && val > 0) {
+                appState.baseSalary = val;
+                calculateUserDashboardMetrics();
+                renderSheetsTable();
+                showModal('Gaji Diperbarui', `Nominal gaji harian standar berhasil diubah menjadi Rp ${val.toLocaleString('id-ID')}`, 'success');
+            }
+        }
+
+        // SUBMIT PENGAJUAN IZIN, SAKIT, EVENT, TELAT
+        function handleLeaveSubmit(e) {
+            e.preventDefault();
+            const type = document.getElementById('leaveType').value;
+            const startDate = document.getElementById('leaveStartDate').value;
+            const endDate = document.getElementById('leaveEndDate').value;
+            const desc = document.getElementById('leaveDesc').value.trim();
+
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+
+            if (end < start) {
+                showModal('Kesalahan Tanggal', 'Tanggal akhir tidak boleh lebih awal dari tanggal mulai!', 'error');
+                return;
+            }
+
+            const diffTime = Math.abs(end - start);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+            // Determine Sheets Row Color
+            // Sakit = Kuning, Izin/Event/Telat = Merah
+            let colorClass = 'bg-red-200 text-red-900';
+            if (type === 'Sakit') {
+                colorClass = 'bg-amber-200 text-amber-900';
+            }
+
+            // Kurangi Jatah Cuti Mingguan jika Izin/Sakit
+            if (type === 'Izin' || type === 'Sakit') {
+                if (appState.currentUser.leaveQuota >= diffDays) {
+                    appState.currentUser.leaveQuota -= diffDays;
+                    document.getElementById('leaveQuotaText').textContent = appState.currentUser.leaveQuota;
+                }
+            }
+
+            // Record to Sheets Table
+            appState.attendanceRecords.push({
+                id: Date.now(),
+                empId: appState.currentUser.id,
+                empName: appState.currentUser.name,
+                empEmail: appState.currentUser.email,
+                date: `${startDate} s/d ${endDate}`,
+                masuk: 'LEAVE',
+                istirahatMulai: 'LEAVE',
+                istirahatSelesai: 'LEAVE',
+                pulang: 'LEAVE',
+                status: `${type} (${diffDays} Hari): ${desc}`,
+                salaryRate: type === 'Sakit' ? 100 : 0, // Sakit dapet gaji/ijin terpotong
+                colorClass: colorClass
+            });
+
+            renderSheetsTable();
+            calculateUserDashboardMetrics();
+            
+            // Reset Form
+            document.getElementById('leaveDesc').value = '';
+            document.getElementById('calculatedDaysText').textContent = '0 Hari';
+
+            showModal('Pengajuan Berhasil', `Pengajuan ${type} untuk ${diffDays} hari telah disimpan ke dalam Sheets.`, 'success');
+        }
+
+        // CALCULATE LEAVE DAYS IN FORM
+        function calculateLeaveDays() {
+            const startDate = document.getElementById('leaveStartDate').value;
+            const endDate = document.getElementById('leaveEndDate').value;
+
+            if (startDate && endDate) {
+                const start = new Date(startDate);
+                const end = new Date(endDate);
+                if (end >= start) {
+                    const diffTime = Math.abs(end - start);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                    document.getElementById('calculatedDaysText').textContent = `${diffDays} Hari`;
+                    return;
+                }
+            }
+            document.getElementById('calculatedDaysText').textContent = `0 Hari`;
+        }
+
+        // CALCULATE USER DASHBOARD SALARY & STATS
+        function calculateUserDashboardMetrics() {
+            if (!appState.currentUser) return;
+
+            const today = new Date().toISOString().split('T')[0];
+            const todayRecord = appState.attendanceRecords.find(r => r.empId === appState.currentUser.id && r.date === today);
+
+            const rate = todayRecord ? todayRecord.salaryRate : 100;
+            const todaySalaryVal = (appState.baseSalary * rate) / 100;
+
+            document.getElementById('userTodayRate').textContent = `${rate}%`;
+            document.getElementById('userTodaySalary').textContent = `(Rp ${todaySalaryVal.toLocaleString('id-ID')})`;
+
+            const deductionEl = document.getElementById('salaryDeductionStatus');
+            if (rate < 100) {
+                deductionEl.className = "text-[11px] text-red-600 mt-2 flex items-center font-bold";
+                deductionEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> Terpotong 5% (Terlambat Absen Masuk)`;
+            } else {
+                deductionEl.className = "text-[11px] text-emerald-600 mt-2 flex items-center";
+                deductionEl.innerHTML = `<i class="fa-solid fa-circle-check mr-1"></i> Tepat Waktu (Gaji Utuh 100%)`;
+            }
+
+            // Calculate Monthly Total
+            const userRecords = appState.attendanceRecords.filter(r => r.empId === appState.currentUser.id && r.masuk !== 'LEAVE');
+            let totalSalaryMonthly = 0;
+            userRecords.forEach(rec => {
+                totalSalaryMonthly += (appState.baseSalary * rec.salaryRate) / 100;
+            });
+
+            document.getElementById('monthlySalaryAccumulated').textContent = `Rp ${totalSalaryMonthly.toLocaleString('id-ID')}`;
+        }
+
+        // RENDER GOOGLE SHEETS SIMULATED TABLE
+        function renderSheetsTable() {
+            const tbody = document.getElementById('sheetsTableBody');
+            tbody.innerHTML = '';
+
+            appState.attendanceRecords.forEach((rec, index) => {
+                const tr = document.createElement('tr');
+                tr.className = `${rec.colorClass} transition-colors hover:opacity-90`;
+
+                tr.innerHTML = `
+                    <td class="font-mono text-center">${index + 1}</td>
+                    <td class="font-semibold">${rec.empName}</td>
+                    <td class="text-slate-600">${rec.empEmail}</td>
+                    <td class="whitespace-nowrap">${rec.date}</td>
+                    <td class="font-mono text-center">${rec.masuk}</td>
+                    <td class="font-mono text-center">${rec.istirahatMulai}</td>
+                    <td class="font-mono text-center">${rec.istirahatSelesai}</td>
+                    <td class="font-mono text-center">${rec.pulang}</td>
+                    <td class="font-medium">${rec.status}</td>
+                    <td class="font-bold text-center">${rec.salaryRate}%</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // MODAL NOTIFICATION SYSTEM (Replacing alert)
+        function showModal(title, message, type = 'info') {
+            const modal = document.getElementById('customModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalMessage = document.getElementById('modalMessage');
+            const modalIcon = document.getElementById('modalIcon');
+
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+
+            if (type === 'error') {
+                modalIcon.className = "w-16 h-16 mx-auto mb-4 flex items-center justify-center rounded-full bg-red-100 text-red-600 text-2xl";
+                modalIcon.innerHTML = `<i class="fa-solid fa-circle-xmark"></i>`;
+            } else if (type === 'warning') {
+                modalIcon.className = "w-16 h-16 mx-auto mb-4 flex items-center justify-center rounded-full bg-amber-100 text-amber-600 text-2xl";
+                modalIcon.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i>`;
+            } else if (type === 'success') {
+                modalIcon.className = "w-16 h-16 mx-auto mb-4 flex items-center justify-center rounded-full bg-emerald-100 text-emerald-600 text-2xl";
+                modalIcon.innerHTML = `<i class="fa-solid fa-circle-check"></i>`;
+            } else {
+                modalIcon.className = "w-16 h-16 mx-auto mb-4 flex items-center justify-center rounded-full bg-blue-100 text-blue-600 text-2xl";
+                modalIcon.innerHTML = `<i class="fa-solid fa-circle-info"></i>`;
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('customModal').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
